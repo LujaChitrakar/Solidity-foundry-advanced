@@ -21,7 +21,7 @@ contract ManualToken {
         return s_balances[_owner];
     }
 
-    function transter(address _to, uint256 _amount) public {
+    function transfer(address _to, uint256 _amount) public {
         uint256 previousBalance = balanceOf(msg.sender) + balanceOf(_to);
         s_balances[msg.sender] -= _amount;
         s_balances[_to] += _amount;
