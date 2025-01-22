@@ -1,0 +1,3 @@
+keccak256= convert to hash
+
+abi.encodePacked=tightly packed two or more inputs like concat
