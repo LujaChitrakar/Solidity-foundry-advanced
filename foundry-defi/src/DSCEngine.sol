@@ -60,6 +60,8 @@ contract DSCEngine is ReentrancyGuard {
         uint256 indexed amount
     );
 
+    event DscMinted(address indexed user, uint256 indexed amount);
+
     event CollatralRedeemed(
         address indexed redeemedFrom,
         address indexed redeemedTo,
@@ -184,6 +186,7 @@ contract DSCEngine is ReentrancyGuard {
     ) public moreThanZero(amountDscToMint) nonReentrant {
         s_DscMinted[msg.sender] += amountDscToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
+        emit DscMinted(msg.sender, amountDscToMint);
         bool minted = i_dsc.mint(msg.sender, amountDscToMint);
         if (!minted) {
             revert DSCEngine__MintFailed();
@@ -217,6 +220,7 @@ contract DSCEngine is ReentrancyGuard {
         if (startingUserHealthFactor >= MIN_HEALTH_FACTOR) {
             revert DSCEngine__HealthFactorOk();
         }
+
         uint256 tokenAmountFromDebtCovered = getTokenAmountFromUsd(
             collateral,
             debtToCover
@@ -273,8 +277,12 @@ contract DSCEngine is ReentrancyGuard {
         address tokenCollateralAddress,
         uint256 amountCollateral
     ) private {
-        s_collateralDeposited[from][tokenCollateralAddress] -= amountCollateral;
+        uint256 userBalance = s_collateralDeposited[msg.sender][
+            tokenCollateralAddress
+        ];
+        require(userBalance >= amountCollateral, "Insufficient collateral");
 
+        s_collateralDeposited[from][tokenCollateralAddress] -= amountCollateral;
         emit CollatralRedeemed(
             from,
             to,
@@ -369,5 +377,15 @@ contract DSCEngine is ReentrancyGuard {
         return
             // ((1000*1e8)*1e10)*10000*1e18)/1e18
             ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
+    }
+
+    function getAccountInformation(
+        address user
+    )
+        external
+        view
+        returns (uint256 totalDscMinted, uint256 collateralvalueinUsd)
+    {
+        (totalDscMinted, collateralvalueinUsd) = _getAccountInformation(user);
     }
 }
