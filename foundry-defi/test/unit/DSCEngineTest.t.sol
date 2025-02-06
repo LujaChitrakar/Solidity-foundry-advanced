@@ -194,17 +194,44 @@ contract DSCEngineTest is Test {
         vm.stopPrank();
     }
 
-    // function testEventIsEmitedWhenCollateralIsRedeem()
-    //     public
-    //     depositedCollateral
-    // {
-    //     uint256 amountCollateral = 5 ether;
-    //     vm.startPrank(USER);
-    //     vm.expectEmit(true, true, false, false);
-    //     emit DSCEngine.CollatralRedeemed(USER, USER, weth, amountCollateral);
-    //     engine.redeemCollateral(weth, amountCollateral);
-    //     vm.stopPrank();
-    // }
+    /**
+     * TEST for BURNING collateral functions
+     */
+
+    function testCantBurnIfBurnAmountIsZero() public depositedCollateral {
+        vm.startPrank(USER);
+        vm.expectRevert(DSCEngine.DSCEngine__NeedsMoreThanZero.selector);
+        engine.burnDsc(0);
+        vm.stopPrank();
+    }
+
+    function testCanBurnDsc() public {
+        uint256 amountToBurn = 5 ether;
+        uint256 amountDscToMint = 10 ether;
+        vm.startPrank(USER);
+        ERC20Mock(weth).mint(USER, AMOUNT_COLLATERAL);
+        ERC20Mock(weth).approve(address(engine), AMOUNT_COLLATERAL);
+        engine.depositCollateralAndMintDsc(
+            weth,
+            AMOUNT_COLLATERAL,
+            amountDscToMint
+        );
+        uint256 usersBalanceStart = dsc.balanceOf(USER);
+        dsc.approve(address(engine), amountToBurn);
+
+        engine.burnDsc(amountToBurn);
+        uint256 usersBalanceFinal = dsc.balanceOf(USER);
+        vm.stopPrank();
+        assertEq(usersBalanceFinal + amountToBurn, usersBalanceStart);
+    }
+
+    function testCantBurnMoreThanUserOwn() public {
+        vm.startPrank(USER);
+        vm.expectRevert();
+        engine.burnDsc(1);
+        vm.stopPrank();
+    }
 }
 // DSCEngine:
 // 36 36 20 35
+// 65 64 25 75
